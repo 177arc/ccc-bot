@@ -1,0 +1,1 @@
+nodemon --debug=8448 messenger.js
