@@ -157,6 +157,7 @@ initActions().then((controller) => {
     logger.error(`Unhandled exception: ${err}`);
   });
 
+
   app.listen(PORT);
   logger.info('Listening on :' + PORT + '...');
   logger.info(`Pointing to ${config.db.database} database ...`);

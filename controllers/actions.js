@@ -7,6 +7,10 @@ const initData = require('./init');
 const traverse = require('traverse');
 const views = require('../views/views');
 const tagtree = require('../data/tagtree');
+const {Tag} = require('../data/tags');
+const {Article} = require('../data/articles');
+const {EventCategory, Event} = require('../data/events');
+const { dataManager } = require('../data/datamanager');
 const db = require('../data/db');
 /*const vision = require('@google-cloud/vision')({
   projectId: 'ccc-bot-150816',
@@ -152,25 +156,24 @@ const init = () => {
                 }
 
                 if (eventType) {
-                  let tagNode = tagsByTitle[eventType];
-                  let articleNode = articlesByTitle[eventType];
-
+                  let tagNode = Tag.byName.get(eventType);
+                  let articleNode = Article.byName.get(eventType);
 
                   if(!tagNode) {
                     logger.warn(`No tag found for event type '${eventType}'.`);
                     return resolve(context);
                   }
 
-
                   logger.debug(`Found tag for event type '${eventType}' and UI name '${tagNode.uiName}'.`);
 
                   let catIds = traverse(tagNode).reduce((acc, node) => {
-                    if (node && node instanceof tagtree.EventCategory)
+                    if (node && node instanceof EventCategory)
                       acc.push(node.id);
                     return acc;
                   }, []);
 
                   logger.debug(`Found the following category IDs for ${eventType}: ${catIds}`);
+
 
                   context.info = true;  // Makes sure that info is defined so it can be sent from wit.
 

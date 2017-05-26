@@ -10,7 +10,7 @@ class Tag {
     this.tags = [];
     this.articles = [];
     this.eventCats = [];
-    this.url =  `${config.url}/index.php?option=com_tags&Itemid=118&id[0]=${this.id}&lang=en&types[0]=1&view=tag`;
+    this.url = `${config.url}/index.php?option=com_tags&Itemid=118&id[0]=${this.id}&lang=en&types[0]=1&view=tag`;
 
     try {
       if (info)
@@ -94,6 +94,10 @@ class Article {
     if(eventCat && eventCat.article != this)
       eventCat.setArticle(this);
   }
+}
+
+class Event {
+
 }
 
 module.exports = {Tag, EventCategory, Article};
