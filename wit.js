@@ -6,7 +6,6 @@ const {
     DEFAULT_WIT_URL
 } = require('node-wit/lib/config');
 const fetch = require('isomorphic-fetch');
-const uuid = require('node-uuid');
 
 const learnMore = 'Learn more at https://wit.ai/docs/quickstart';
 
@@ -93,6 +92,7 @@ function Wit(opts) {
 
       const request = {
         sessionId,
+
         context: clone(prevContext),
         text: message,
         entities: json.entities,
@@ -115,6 +115,7 @@ function Wit(opts) {
           );
         });
       } else if (json.type === 'action') {
+        // MM: Executes the returned action.
         return runAction(actions, json.action, request).then(ctx => {
           const nextContext = ctx || {};
           if (currentRequest !== this._sessions[sessionId]) {

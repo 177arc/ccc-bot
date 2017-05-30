@@ -1,5 +1,5 @@
 const config = require('../config');
-const { dataManager, DataProvider, TaggedDataProvider, Dto, TaggedDto } = require('./datamanager');
+const { data, TaggedDataProvider, TaggedDto } = require('./datamanager');
 require('./tags');
 
 class Article extends TaggedDto {
@@ -32,7 +32,7 @@ class Article extends TaggedDto {
   }
 }
 
-dataManager.register(new TaggedDataProvider(Article, `Articles`,
+data.register(new TaggedDataProvider(Article, `Articles`,
     `select ct.id as id, ct.title as name, ct.introtext as intro, ct.images as images 
       from ccc_content ct
       join ccc_contentitem_tag_map tm on tm.content_item_id = ct.id and tm.type_alias in ('com_content.article')

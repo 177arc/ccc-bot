@@ -2,7 +2,27 @@ const mysql = require('mysql');
 const config = require('../config');
 const pool = mysql.createPool(config.db);
 const logger = require('../log');
-const data = {};
+
+// Defines private properties.
+var providers = Symbol();
+class DataManager {
+  constructor() {
+    this[providers] = [];
+  }
+
+  register(provider) {
+    this[providers].push(provider);
+    return provider;
+  }
+
+  load() {
+    // Loads the data of the providers sequentially.
+    promiseSerial(this[providers].map(x => () => x.load()));
+  }
+
+}
+
+const data = new DataManager();
 
 class DataProvider {
   constructor(dtoClass, name, dataSql) {
@@ -96,25 +116,6 @@ class TaggedDataProvider extends DataProvider {
   }
 }
 
-// Defines private properties.
-var providers = Symbol();
-class DataManager {
-  constructor() {
-    this[providers] = [];
-  }
-
-  register(provider) {
-    this[providers].push(provider);
-    return provider;
-  }
-
-  load() {
-    // Loads the data of the providers sequentially.
-    promiseSerial(this[providers].map(x => () => x.load()));
-  }
-
-}
-
 class Dto {
   constructor() {
     // Defines the properties of the class.
@@ -161,7 +162,7 @@ class Dto {
     let byIdName = `${this.getVarPluralPrefix()}ById`;
 
     // Only sets the parent if the corresponding data map could be found.
-    if(data.hasOwnProperty(byIdName)) {
+    if(this.hasOwnProperty(byIdName)) {
       // Gets the data map to look up the parent by ID.
       let parent = data[byIdName].get(parentId);
 
@@ -203,5 +204,4 @@ const promiseSerial = funcs =>
       promise.then(result => func().then(Array.prototype.concat.bind(result))).catch(err => { logger.error(err) }),
     Promise.resolve([]));
 
-const dataManager = new DataManager();
-module.exports =  {dataManager, DataProvider, TaggedDataProvider, Dto, TaggedDto};
+module.exports =  {data, DataProvider, TaggedDataProvider, Dto, TaggedDto};

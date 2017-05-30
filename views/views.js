@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const dateFormat = require('dateformat');
 const config = require('../config');
@@ -25,6 +25,7 @@ const renderButtons = (userId, text, buttons) => {
     }
   };
 };
+
 
 const renderEvents = (userId, intro, events, tag, activity) => {
   let style = "compact";

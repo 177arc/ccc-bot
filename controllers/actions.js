@@ -3,15 +3,15 @@
 const Wit = require('../wit');
 const config = require('../config');
 const logger = require('../log');
-const initData = require('./init');
 const traverse = require('traverse');
+
 const views = require('../views/views');
-const tagtree = require('../data/tagtree');
 const {Tag} = require('../data/tags');
 const {Article} = require('../data/articles');
 const {EventCategory, Event} = require('../data/events');
-const { dataManager } = require('../data/datamanager');
-const db = require('../data/db');
+const { data } = require('../data/datamanager');
+const { skillsManager } = require('../skills/skillsmanager');
+require('../skills/events');
 /*const vision = require('@google-cloud/vision')({
   projectId: 'ccc-bot-150816',
   credentials: {
@@ -77,12 +77,15 @@ const sendUserResponse = (session, body) => {
 };
 
 const init = () => {
-    return initData().then(([tagsByTitle, articlesByTitle]) => {
+    return new Promise(function (resolve, reject) {
+        data.load();
+        resolve();
+    }).then(() => {
       // Our bot actions
       class ActionController {
         constructor(views) {
           let controller = this;
-          this.actions = {
+          let actions = {
             send({sessionId, context}, response) {
               let session =  controller.sessions[sessionId]; // Gets the session object.
 
@@ -93,8 +96,9 @@ const init = () => {
               // Let's forward our bot response to her.
               // We return a promise to let our bot know when we're done sending
               let body = session.render ? session.render(session) : views.renderDefault(session);
-              return sendUserResponse(session, body);
-             },
+              sendUserResponse(session, body);
+              return;
+            },
             getFaithInfo({sessionId, context, entities})  {
               return new Promise(function (resolve, reject) {
                 let session =  controller.sessions[sessionId]; // Gets the session object.
@@ -115,7 +119,7 @@ const init = () => {
             },
             getGeneralEventInfo({sessionId, context, entities}) {
               logger.debug(`Getting general event info ...`);
-              return new Promise(function (resolve, reject) {
+               return new Promise(function (resolve, reject) {
                 let session = controller.sessions[sessionId]; // Gets the session object.
                 session.intent = ActionController.getIntent(entities);
                 session.intentConfidence = ActionController.getIntentConfidence(entities);
@@ -134,7 +138,7 @@ const init = () => {
 
                     session.render = views.renderGeneralEvent;
                     delete context.noInfo;
-                    return resolve(context);
+                    return resolve();
                   });
               });
             },
@@ -222,10 +226,19 @@ const init = () => {
             // See https://wit.ai/docs/quickstart
           };
 
+          // Registers skill actions so that they can be passed to the Wit API to be called.
+          skillsManager.skills.forEach(skill => {
+            Object.getOwnPropertyNames(Object.getPrototypeOf(skill)).forEach(property => {
+              if(property != 'constructor')
+                actions[`${skill.constructor.name}.${property}`] =
+                  args => { args.session = this.sessions[args.sessionId]; return skill[property](args); };
+            });
+          });
+
           // Setting up our bot
           this.wit = new Wit({
             accessToken: WIT_TOKEN,
-            actions: this.actions,
+            actions,
             logger
           });
 
@@ -384,6 +397,8 @@ const init = () => {
       }
 
       return new ActionController(views);
+    }).catch(err => {
+      logger.error(err);
     });
 }
 

@@ -17,7 +17,6 @@ const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const express = require('express');
 const fetch = require('node-fetch');
-const request = require('request');
 const config = require('./config');
 const logger = require('./log');
 const initActions = require('./controllers/actions');
@@ -71,6 +70,7 @@ function verifyRequestSignature(req, res, buf) {
   }
 }
 
+// setTimeout(2000, {});
 initActions().then((controller) => {
   // Starting our webserver and putting it all together
   const app = express();

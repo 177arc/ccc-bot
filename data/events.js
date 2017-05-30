@@ -1,4 +1,4 @@
-const {dataManager, DataProvider, TaggedDataProvider, Dto, TaggedDto } = require('./datamanager');
+const {data, DataProvider, TaggedDataProvider, Dto, TaggedDto } = require('./datamanager');
 const {Tag} = require('./tags');
 const {Article} = require('./articles');
 
@@ -66,17 +66,17 @@ class Event extends TaggedDto {
   }
 }
 
-dataManager.register(new TaggedDataProvider(EventCategory, `Event Categories`,
+data.register(new TaggedDataProvider(EventCategory, `Event Categories`,
     `select c.id as id, c.title as name
       from ccc_categories c
       join ccc_contentitem_tag_map tm on tm.content_item_id = c.id and tm.type_alias in ('com_dpcalendar.category')
       where c.published = 1`, `com_dpcalendar.category`));
 
-dataManager.register(new TaggedDataProvider(Event, `Events`,
+data.register(new TaggedDataProvider(Event, `Events`,
     `select ev.id as id, ev.title as name, ev.start_date as startDate, ev.end_date as endDate, ev.featured as featured, ev.images as images, ev.url as url, c.id as categoryId from
       ccc_dpcalendar_events as ev
       inner join
-      ccc_categories as c on  ev.catid = c.id      
+      ccc_categories as c on ev.catid = c.id      
       where (ev.end_date > now() or ev.end_date is null)
       and ev.state = 1
       order by ev.featured desc, ev.start_date asc`, `com_dpcalendar.event`));

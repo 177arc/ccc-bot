@@ -1,5 +1,5 @@
 const config = require('../config');
-const { dataManager, DataProvider, TaggedDataProvider, Dto, TaggedDto } = require('./datamanager');
+const { data, DataProvider, TaggedDataProvider, Dto, TaggedDto } = require('./datamanager');
 
 class Tag extends Dto {
   constructor() {
@@ -33,7 +33,7 @@ class Tag extends Dto {
   }
 }
 
-dataManager.register(
+data.register(
 new DataProvider(Tag, `Tags`,
   `select t.id as id, t.parent_id as parentId, t.title as name, t.note as note
       from ccc_tags t
