@@ -116,7 +116,6 @@ initActions().then((controller) => {
       });
   });
 
-
   // Message handler
   app.post('/webhook', (req, res) => {
     // Parse the Messenger payload
@@ -139,11 +138,11 @@ initActions().then((controller) => {
             const {text, attachments, sticker_id} = event.message;
 
             // We received a text message
-            logger.debug('received', JSON.stringify(event));
+            logger.debug(`Received from Facebook: ${JSON.stringify(event)}`);
 
             controller.processRequest(senderId, text, attachments, sticker_id, res);
           } else {
-            logger.debug('received event', JSON.stringify(event));
+            logger.debug(`Received from Facebook: ${JSON.stringify(entry)}`);
           }
         });
       });
@@ -153,10 +152,15 @@ initActions().then((controller) => {
     res.sendStatus(200);
   });
 
+  // Adds a generic redirect to support mailto in link buttons.
+  app.get('/redirect', (req, res) => {
+      res.writeHead(302, { 'Location': req.param('dest') });
+      res.end();
+  });
+
   process.on('uncaughtException', (err) => {
     logger.error(`Unhandled exception: ${err}`);
   });
-
 
   app.listen(PORT);
   logger.info('Listening on :' + PORT + '...');

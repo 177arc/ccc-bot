@@ -3,19 +3,19 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="f33831e7-5da3-434e-a285-b3b8c3d76454" name="Christ Church Chislehurst (Prod)" url="https://www.christchurchchislehurst.org">
-        <fileTransfer host="109.228.51.252" port="22" rootFolder="/var/www/vhosts/ccchislehurst.org" accessType="SFTP" username="cccadmin" password="dfc9dfc9dfc9df90df9bdf92df9ddf98df8b">
+        <fileTransfer host="109.228.51.252" port="1872" rootFolder="/var/www/vhosts/ccchislehurst.org" accessType="SFTP" username="cccadmin" password="dfc9dfc9dfc9df90df9bdf92df9ddf98df8b">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" />
           </advancedOptions>
-          <option name="port" value="22" />
+          <option name="port" value="1872" />
         </fileTransfer>
       </webServer>
       <webServer id="98e2ef5b-daed-4f98-a82e-c85b497bfea6" name="Christ Church Chislehurst (Test)" url="https://test.christchurchchislehurst.org">
-        <fileTransfer host="109.228.51.252" port="22" rootFolder="/var/www/vhosts/ccchislehurst.org" accessType="SFTP" username="cccadmin" password="dfc9dfc9dfc9df90df9bdf92df9ddf98df8b">
+        <fileTransfer host="109.228.51.252" port="1872" rootFolder="/var/www/vhosts/ccchislehurst.org" accessType="SFTP" username="cccadmin" password="dfc9dfc9dfc9df90df9bdf92df9ddf98df8b">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" />
           </advancedOptions>
-          <option name="port" value="22" />
+          <option name="port" value="1872" />
         </fileTransfer>
       </webServer>
     </option>

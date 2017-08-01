@@ -1,6 +1,5 @@
 'use strict';
 
-const dateFormat = require('dateformat');
 const config = require('../config');
 
 const renderText = (userId, text) => {
@@ -25,7 +24,6 @@ const renderButtons = (userId, text, buttons) => {
     }
   };
 };
-
 
 const renderEvents = (userId, intro, events, tag, activity) => {
   let style = "compact";
@@ -67,7 +65,7 @@ const renderEvents = (userId, intro, events, tag, activity) => {
     let images = undefined;
     try { images = event.images ? JSON.parse(event.images) : undefined } catch (ex) {}
 
-    // If a master URL is available, let's us that, if not, create a URL to the event.
+    // If a master URL is available, let's use that, if not, create a URL to the event.
     let url = event.url ? `${config.url}${event.url}` : `${config.url}/whats-on/event-calendar/${event.id}`;
     let eventResult = {
       title: event.title,

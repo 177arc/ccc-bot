@@ -6,12 +6,13 @@ const logger = require('../log');
 const traverse = require('traverse');
 
 const views = require('../views/views');
-const {Tag} = require('../data/tags');
-const {Article} = require('../data/articles');
-const {EventCategory, Event} = require('../data/events');
 const { data } = require('../data/datamanager');
 const { skillsManager } = require('../skills/skillsmanager');
+const { messenger } = require('../views/messenger');
+
 require('../skills/events');
+require('../skills/greetings');
+require('../skills/contacts');
 /*const vision = require('@google-cloud/vision')({
   projectId: 'ccc-bot-150816',
   credentials: {
@@ -86,16 +87,18 @@ const init = () => {
         constructor(views) {
           let controller = this;
           let actions = {
-            send({sessionId, context}, response) {
+            send({sessionId, context}) {
               let session =  controller.sessions[sessionId]; // Gets the session object.
 
               if(!session.userId)
                 return Promise.resolve();
 
+              let response = session.response;
+
               // Yay, we found our recipient!
               // Let's forward our bot response to her.
               // We return a promise to let our bot know when we're done sending
-              let body = session.render ? session.render(session) : views.renderDefault(session);
+              let body = messenger.render(response);
               sendUserResponse(session, body);
               return;
             },
@@ -112,105 +115,8 @@ const init = () => {
                 } else {
                   context.noInfo = true;
                   delete context.info;
-
                 }
                 return resolve(context);
-              });
-            },
-            getGeneralEventInfo({sessionId, context, entities}) {
-              logger.debug(`Getting general event info ...`);
-               return new Promise(function (resolve, reject) {
-                let session = controller.sessions[sessionId]; // Gets the session object.
-                session.intent = ActionController.getIntent(entities);
-                session.intentConfidence = ActionController.getIntentConfidence(entities);
-                session.events = [];
-
-                // Retrieve the most imminent upcoming events.
-                db.getGeneralEventRows(
-                  function (err, rows, fields) {
-                    if (err) throw err;
-
-                    logger.debug(`Retrieved '${rows.length}' rows ...`);
-
-                    // Adds the events to the context
-                    for (let row of rows)
-                      session.events.push(row)
-
-                    session.render = views.renderGeneralEvent;
-                    delete context.noInfo;
-                    return resolve();
-                  });
-              });
-            },
-            getSpecificEventInfo({sessionId, context, entities}) {
-              logger.debug(`Getting specific event info ...`);
-              return new Promise(function (resolve, reject) {
-                let session =  controller.sessions[sessionId]; // Gets the session object
-                session.intent = ActionController.getIntent(entities);
-                session.intentConfidence = ActionController.getIntentConfidence(entities);
-
-                let eventType = ActionController.firstEntityValue(entities, 'event_type');
-                if(!eventType) {
-                  context.noInfo = true;
-                  delete context.info;
-
-                  session.render = views.renderSpecificEvent; // Specifies what view should be used to generate the JSON response.
-
-                  return resolve(context);
-                }
-
-                if (eventType) {
-                  let tagNode = Tag.byName.get(eventType);
-                  let articleNode = Article.byName.get(eventType);
-
-                  if(!tagNode) {
-                    logger.warn(`No tag found for event type '${eventType}'.`);
-                    return resolve(context);
-                  }
-
-                  logger.debug(`Found tag for event type '${eventType}' and UI name '${tagNode.uiName}'.`);
-
-                  let catIds = traverse(tagNode).reduce((acc, node) => {
-                    if (node && node instanceof EventCategory)
-                      acc.push(node.id);
-                    return acc;
-                  }, []);
-
-                  logger.debug(`Found the following category IDs for ${eventType}: ${catIds}`);
-
-
-                  context.info = true;  // Makes sure that info is defined so it can be sent from wit.
-
-                  session.events = [];
-                  session.eventType = eventType;
-                  session.uiEventType = tagNode.uiName;
-                  session.tag = tagNode;
-                  session.render = views.renderSpecificEvent; // Specifies what view should be used to generate the JSON response.
-
-                  if (articleNode)
-                    session.activity = articleNode;
-
-                  if (catIds.length > 0) {
-                    logger.debug(`Retrieving event data ...`);
-
-                    db.getSpecificEventRows(catIds,
-                      function (err, rows, fields) {
-                      if (err) throw err;
-
-                      logger.debug(`Retrieved '${rows.length}' rows ...`);
-
-                      // Adds the events to the context
-                      for (let row of rows)
-                        session.events.push(row)
-
-                      delete context.noInfo;
-                      return resolve(context);
-                    });
-                  }
-                  else
-                    return resolve(context);
-
-                }
               });
             },
             sayHello({sessionId, context, entities}) {
@@ -231,7 +137,15 @@ const init = () => {
             Object.getOwnPropertyNames(Object.getPrototypeOf(skill)).forEach(property => {
               if(property != 'constructor')
                 actions[`${skill.constructor.name}.${property}`] =
-                  args => { args.session = this.sessions[args.sessionId]; return skill[property](args); };
+                  args => { args.session = this.sessions[args.sessionId];
+                  args.request = {};
+                  args.request.intent = skill.getIntent(args.entities);
+                  args.request.intentConfidence = skill.getIntentConfidence(args.entities);
+                  args.response = {};
+                  args.response.userId = args.session.userId;
+                  args.session.response = args.response;
+                  return skill[property](args);
+              };
             });
           });
 

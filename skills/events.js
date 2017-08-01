@@ -1,87 +1,106 @@
 const logger = require('../log');
-const {messenger} = require('../views/messenger');
+const dateFormat = require('dateformat');
 const traverse = require('traverse');
+const config = require('../config');
+
 const {skillsManager, Skill} = require('./skillsmanager');
 const {EventCategory} = require('../data/events');
+const {ListResponse, ListItem, LinkButton} = require('./../views/models');
 const {data} = require('../data/datamanager');
 
 class SpecificEventsSkill extends Skill {
-  getGeneral({session, context, entities}) {
+  getGeneral({response}) {
     logger.debug(`Getting general event info ...`);
-    return new Promise(function (resolve, reject) {
-      session.intent = Skill.getIntent(entities);
-      session.intentConfidence = Skill.getIntentConfidence(entities);
+    // Gets all the events and sorts them by start date/time.
+      let events = Array.from(data.eventsById, ([key, value]) => { return value })
+          .sort((a, b) => a.startDate - b.startDate)
+          .slice(0, 5);
 
-      session.events = [];
-      data.eventsById.forEach(event => session.events.push(event));
-      session.events = session.events.sort((a, b) => a.startDate > b.startDate);
-      session.render = args => messenger.renderEvents(args);
-      return resolve();
-    });
+      response.model = this.eventsToModel(`Here are some events that you maybe interested in:`, events);
+      context.info = true;  // Makes sure that info is defined so it can be sent from wit.
+      return;
   }
 
-  getSpecific({session, context, entities}) {
+  getSpecific({context, entities, response}) {
     logger.debug(`Getting specific event info ...`);
 
-    return new Promise(function (resolve, reject) {
-      session.intent = Skill.getIntent(entities);
-      session.intentConfidence = Skill.getIntentConfidence(entities);
+    let eventType = this.firstEntityValue(entities, 'event_type');
+    if (!eventType) {
+      context.noInfo = true;
+      delete context.info;
 
-      let eventType = Skill.firstEntityValue(entities, 'event_type');
-      if (!eventType) {
-        context.noInfo = true;
-        delete context.info;
+      response.model = this.textToModel(`Sorry, we don't have any such events 😕`);
+      return context;
+    }
 
-        session.render = args => messenger.renderDefault(args); // Specifies what view should be used to generate the JSON response.
+    let tag = data.tagsByName.get(eventType);
+    let activity = data.articlesByName.get(eventType);
 
-        return resolve();
-      }
+    if (!tag) {
+      logger.warn(`No tag found for event type '${eventType}'.`);
+      response.model = this.textToModel(`Yeah, I recognise this but I can't find any ${eventType} events. Sorry 😕`);
+      return context;
+    }
 
-      if (eventType) {
-        let tagNode = data.tagsByName.get(eventType);
-        let articleNode = data.articlesByName.get(eventType);
+    logger.debug(`Found tag for event type '${eventType}' and UI name '${tag.uiName}'.`);
 
-        if (!tagNode) {
-          logger.warn(`No tag found for event type '${eventType}'.`);
-          return resolve(context);
-        }
+    let categories = traverse(tag).reduce((acc, node) => {
+        if (node && node instanceof EventCategory)
+            acc.push(node);
+        return acc;
+    }, []);
 
-        logger.debug(`Found tag for event type '${eventType}' and UI name '${tagNode.uiName}'.`);
+    logger.debug(`Found ${categories.length} event categories found for ${eventType}.`);
 
-        let catIds = traverse(tagNode).reduce((acc, node) => {
-          if (node && node instanceof EventCategory)
-            acc.push(node.id);
-          return acc;
-        }, []);
+    // Gets all events with for the given category IDs, sorts it by start date in reverse order.
+    let events = [];
+    categories.forEach(category => category.events.forEach(event => events.push(event)));
+    events = events.sort((a, b) => a.startDate - b.startDate);
+    response.model = this.eventsToModel(`Next up are:`, events, tag, activity);
+    context.info = true;  // Makes sure that info is defined so it can be sent from wit.
 
-        logger.debug(`Found the following category IDs for ${eventType}: ${catIds}`);
-
-
-        context.info = true;  // Makes sure that info is defined so it can be sent from wit.
-
-        session.events = [];
-        session.eventType = eventType;
-        session.uiEventType = tagNode.uiName;
-        session.tag = tagNode;
-        session.render = args => messenger.renderEvents(args); // Specifies what view should be used to generate the JSON response.
-
-        if (articleNode)
-          session.activity = articleNode;
-
-        if (catIds.length > 0) {
-          logger.debug(`Getting event data ...`);
-
-          // Gets all events with for the given category IDs, sorts it by start date in reverse order.
-          catIds.forEach(catId => data.eventCategoriesById.get(catId).events
-            .forEach(event => session.events.push(event)));
-          session.events = session.events.sort((a, b) => a.startDate > b.startDate);
-        }
-
-        return resolve();
-      }
-    });
+    return context;
   }
 
+  // Maps the given events and context information to a list response model.
+  eventsToModel(intro, events, tag, activity) {
+    let model = new ListResponse({});
+    model.text =  intro;
+    model.list = events.map(event => this.eventToModel(event));
+
+    if(tag || activity)
+      model.more = new LinkButton({
+          title: `Find out more`,
+          linkUrl: activity ? activity.url : tag.url
+      });
+
+    return model;
+  }
+
+  // Maps the given event to a list item model.
+  eventToModel(event) {
+    let listItem = new ListItem();
+    listItem.title = event.name;
+    listItem.subTitle = `${dateFormat(event.startDate, "dS mmm, h:MM TT")}`;
+
+    let images = undefined;
+    try {
+        images = event.images ? JSON.parse(event.images) : undefined
+    } catch (ex) {
+    }
+
+    listItem.imageUrl = images ? `${config.url}/${images.image1}` : undefined;
+    // If a master URL is available, let's use that, if not, create a URL to the event.
+    let url = event.url ? `${config.url}${event.url}` : `${config.url}/whats-on/event-calendar/${event.id}`;
+    listItem.linkUrl = url;
+
+    let button = new LinkButton();
+    button.title = `Find more`;
+    button.linkUrl = url;
+
+    listItem.button = button;
+    return listItem;
+  }
 }
 
 skillsManager.register(new SpecificEventsSkill());

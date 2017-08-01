@@ -1,13 +1,14 @@
 'use strict';
 
 const config = require('../config');
+const {SimpleResponse} = require('./../views/models');
 
 class Skill {
-  static getIntent(entities) {
-    return Skill.firstEntityValue(entities, 'intent');
+  getIntent(entities) {
+    return this.firstEntityValue(entities, 'intent');
   };
 
-  static firstEntityValue(entities, entity) {
+  firstEntityValue(entities, entity) {
     const val = entities && entities[entity] &&
       Array.isArray(entities[entity]) &&
       entities[entity].length > 0 &&
@@ -18,7 +19,7 @@ class Skill {
     return typeof val === 'object' ? val.value : val;
   };
 
-  static getIntentConfidence(entities) {
+  getIntentConfidence(entities) {
     const entity = 'intent';
 
     const val = entities && entities[entity] &&
@@ -30,6 +31,10 @@ class Skill {
     return val ? val : null;
   };
 
+  // Maps the given text to a simple response model.
+  textToModel(text) {
+      return new SimpleResponse({text: text});
+  }
 }
 
 class SkillsManager {
@@ -40,33 +45,6 @@ class SkillsManager {
   register(skill) {
     this.skills.push(skill);
     return skill;
-  }
-
-  static getIntent(entities) {
-    return ActionController.firstEntityValue(entities, 'intent');
-  };
-
-  static getIntentConfidence(entities) {
-    const entity = 'intent';
-
-    const val = entities && entities[entity] &&
-      Array.isArray(entities[entity]) &&
-      entities[entity].length > 0 &&
-      entities[entity][0].confidence
-    ;
-
-    return val ? val : null;
-  };
-
-  static firstEntityValue(entities, entity) {
-    const val = entities && entities[entity] &&
-      Array.isArray(entities[entity]) &&
-      entities[entity].length > 0 &&
-      entities[entity][0].value
-    ;
-    if (!val) return null;
-
-    return typeof val === 'object' ? val.value : val;
   }
 }
 

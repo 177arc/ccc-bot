@@ -1,4 +1,5 @@
 'use strict';
+const logger = require('./log');
 
 const {
     DEFAULT_API_VERSION,
@@ -15,7 +16,7 @@ function Wit(opts) {
   }
 
   const {
-    accessToken, apiVersion, actions, headers, logger, witURL
+    accessToken, apiVersion, actions, headers, witURL
   } = this.config = Object.freeze(validate(opts));
 
   this._sessions = {};
@@ -124,7 +125,7 @@ function Wit(opts) {
           return this.converse(sessionId, null, nextContext).then(
             continueRunActions(sessionId, currentRequest, message, nextContext, i - 1)
           );
-        });
+        }).catch(err => logger.error(err));
       } else {
         logger.debug('unknown response type ' + json.type);
         throw new Error('unknown response type ' + json.type);
@@ -194,7 +195,7 @@ const throwIfActionMissing = (actions, action) => {
 
 const runAction = (actions, name, ...rest) => {
   throwIfActionMissing(actions, name);
-  return Promise.resolve(actions[name](...rest));
+  return Promise.resolve(actions[name](...rest)).catch(err => logger.error(err));
 };
 
 const validate = (opts) => {
